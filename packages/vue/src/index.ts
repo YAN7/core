@@ -39,6 +39,12 @@ function getCache(options?: CompilerOptions) {
   return c
 }
 
+/**
+ * 
+ * @param template 
+ * @param options 
+ * @returns 返回一个函数,这个函数返回vnode
+ */
 function compileToFunction(
   template: string | HTMLElement,
   options?: CompilerOptions,
@@ -84,6 +90,7 @@ function compileToFunction(
     opts.isCustomElement = tag => !!customElements.get(tag)
   }
 
+	// code是生成dom的方法.toString形式
   const { code } = compile(template, opts)
 
   function onError(err: CompilerError, asWarning = false) {
@@ -107,13 +114,13 @@ function compileToFunction(
   const render = (
     __GLOBAL__ ? new Function(code)() : new Function('Vue', code)(runtimeDom)
   ) as RenderFunction
-
   // mark the function as runtime compiled
   ;(render as InternalRenderFunction)._rc = true
 
   return (cache[key] = render)
 }
 
+// 注册installWithProxy方法
 registerRuntimeCompiler(compileToFunction)
 
 export { compileToFunction as compile }

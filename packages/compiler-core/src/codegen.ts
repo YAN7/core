@@ -62,6 +62,12 @@ const aliasHelper = (s: symbol) => `${helperNameMap[s]}: _${helperNameMap[s]}`
 
 type CodegenNode = TemplateChildNode | JSChildNode | SSRCodegenNode
 
+/**
+ * @field code 生成dom的函数的字符串形式
+ * @field preamble
+ * @field ast 词法书
+ * @field map 
+ */
 export interface CodegenResult {
   code: string
   preamble: string
