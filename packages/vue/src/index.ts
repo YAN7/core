@@ -40,9 +40,9 @@ function getCache(options?: CompilerOptions) {
 }
 
 /**
- * 
- * @param template 
- * @param options 
+ *
+ * @param template
+ * @param options
  * @returns 返回一个函数,这个函数返回vnode
  */
 function compileToFunction(
@@ -90,7 +90,8 @@ function compileToFunction(
     opts.isCustomElement = tag => !!customElements.get(tag)
   }
 
-	// code是生成dom的方法.toString形式
+  // code是生成dom的方法.toString形式
+  console.log(123123)
   const { code } = compile(template, opts)
 
   function onError(err: CompilerError, asWarning = false) {

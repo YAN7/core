@@ -32,6 +32,8 @@ declare module '@vue/reactivity' {
   }
 }
 
+// extend = Object.assign
+// 这里导出的是操作dom的各种工具函数,比如createComment,createElement
 const rendererOptions = /*#__PURE__*/ extend({ patchProp }, nodeOps)
 
 // lazy create the renderer - this makes core renderer logic tree-shakable
@@ -41,6 +43,7 @@ let renderer: Renderer<Element | ShadowRoot> | HydrationRenderer
 let enabledHydration = false
 
 function ensureRenderer() {
+  console.log('rendererOptions', rendererOptions)
   return (
     renderer ||
     (renderer = createRenderer<Node, Element | ShadowRoot>(rendererOptions))
@@ -65,6 +68,9 @@ export const hydrate = ((...args) => {
 }) as RootHydrateFunction
 
 export const createApp = ((...args) => {
+  // * 万物起源
+  console.log('args', args)
+  // 创建渲染器对象
   const app = ensureRenderer().createApp(...args)
 
   if (__DEV__) {

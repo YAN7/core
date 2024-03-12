@@ -312,6 +312,7 @@ export function createHydrationRenderer(
   return baseCreateRenderer(options, createHydrationFunctions)
 }
 
+// ts的定义函数重载
 // overload 1: no hydration
 function baseCreateRenderer<
   HostNode = RendererNode,
@@ -324,6 +325,7 @@ function baseCreateRenderer(
   createHydrationFns: typeof createHydrationFunctions,
 ): HydrationRenderer
 
+// 实现
 // implementation
 function baseCreateRenderer(
   options: RendererOptions,
@@ -334,6 +336,7 @@ function baseCreateRenderer(
     initFeatureFlags()
   }
 
+  // 判断是浏览器还是node环境
   const target = getGlobalThis()
   target.__VUE__ = true
   if (__DEV__ || __FEATURE_PROD_DEVTOOLS__) {
@@ -357,6 +360,8 @@ function baseCreateRenderer(
 
   // Note: functions inside this closure should use `const xxx = () => {}`
   // style in order to prevent being inlined by minifiers.
+  // ? 比较新旧节点?
+  // * n1为旧节点, n2为新节点
   const patch: PatchFn = (
     n1,
     n2,

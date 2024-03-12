@@ -15,6 +15,7 @@ const isNativeOn = (key: string) =>
 
 type DOMRendererOptions = RendererOptions<Node, Element>
 
+// * 顾名思义，用来分发Prop的方法
 export const patchProp: DOMRendererOptions['patchProp'] = (
   el,
   key,
@@ -27,6 +28,8 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
   unmountChildren,
 ) => {
   const isSVG = namespace === 'svg'
+  // ? 这里算是策略模式
+  // 处理class
   if (key === 'class') {
     patchClass(el, nextValue, isSVG)
   } else if (key === 'style') {
@@ -34,6 +37,7 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
   } else if (isOn(key)) {
     // ignore v-model listeners
     if (!isModelListener(key)) {
+      // 分发事件
       patchEvent(el, key, prevValue, nextValue, parentComponent)
     }
   } else if (
