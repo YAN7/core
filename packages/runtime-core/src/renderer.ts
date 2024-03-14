@@ -360,7 +360,7 @@ function baseCreateRenderer(
 
   // Note: functions inside this closure should use `const xxx = () => {}`
   // style in order to prevent being inlined by minifiers.
-  // ? 比较新旧节点?
+  // * 用来更新虚拟dom
   // * n1为旧节点, n2为新节点
   const patch: PatchFn = (
     n1,
@@ -373,17 +373,20 @@ function baseCreateRenderer(
     slotScopeIds = null,
     optimized = __DEV__ && isHmrUpdating ? false : !!n2.dynamicChildren,
   ) => {
+    // * 如果 n1 和 n2 相等（引用相同），说明没有需要更新的内容，直接返回。
     if (n1 === n2) {
       return
     }
 
     // patching & not same type, unmount old tree
+    // * 如果 n1 存在但不是同一类型的节点，说明需要卸载旧的节点，然后将 n1 设为 null，表示没有旧节点了。
     if (n1 && !isSameVNodeType(n1, n2)) {
       anchor = getNextHostNode(n1)
       unmount(n1, parentComponent, parentSuspense, true)
       n1 = null
     }
 
+    // * 如果新节点的 patchFlag 是 PatchFlags.BAIL，表示需要进行完整的比较，不使用优化模式，将 optimized 设为 false，并清空动态子节点信息。
     if (n2.patchFlag === PatchFlags.BAIL) {
       optimized = false
       n2.dynamicChildren = null
@@ -391,12 +394,15 @@ function baseCreateRenderer(
 
     const { type, ref, shapeFlag } = n2
     switch (type) {
+      // * 处理文本
       case Text:
         processText(n1, n2, container, anchor)
         break
+      // * 处理注释
       case Comment:
         processCommentNode(n1, n2, container, anchor)
         break
+      // * 处理静态节点
       case Static:
         if (n1 == null) {
           mountStaticNode(n2, container, anchor, namespace)
@@ -404,6 +410,7 @@ function baseCreateRenderer(
           patchStaticNode(n1, n2, container, namespace)
         }
         break
+      // * 处理片段
       case Fragment:
         processFragment(
           n1,
@@ -419,6 +426,7 @@ function baseCreateRenderer(
         break
       default:
         if (shapeFlag & ShapeFlags.ELEMENT) {
+          // * 处理普通元素
           processElement(
             n1,
             n2,
@@ -431,6 +439,7 @@ function baseCreateRenderer(
             optimized,
           )
         } else if (shapeFlag & ShapeFlags.COMPONENT) {
+          // * 处理组件
           processComponent(
             n1,
             n2,
@@ -443,6 +452,7 @@ function baseCreateRenderer(
             optimized,
           )
         } else if (shapeFlag & ShapeFlags.TELEPORT) {
+          // * 处理Teleport
           ;(type as typeof TeleportImpl).process(
             n1 as TeleportVNode,
             n2 as TeleportVNode,
@@ -456,6 +466,7 @@ function baseCreateRenderer(
             internals,
           )
         } else if (__FEATURE_SUSPENSE__ && shapeFlag & ShapeFlags.SUSPENSE) {
+          // * 处理suspense
           ;(type as typeof SuspenseImpl).process(
             n1,
             n2,
@@ -474,6 +485,7 @@ function baseCreateRenderer(
     }
 
     // set ref
+    // * 如果节点有 ref 属性且存在父组件，则设置 ref
     if (ref != null && parentComponent) {
       setRef(ref, n1 && n1.ref, parentSuspense, n2 || n1, !n2)
     }
