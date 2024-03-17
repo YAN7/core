@@ -491,6 +491,7 @@ function baseCreateRenderer(
     }
   }
 
+  // * 设置文本
   const processText: ProcessTextOrCommentFn = (n1, n2, container, anchor) => {
     if (n1 == null) {
       hostInsert(
@@ -506,6 +507,7 @@ function baseCreateRenderer(
     }
   }
 
+  // * 处理注释
   const processCommentNode: ProcessTextOrCommentFn = (
     n1,
     n2,
@@ -634,6 +636,7 @@ function baseCreateRenderer(
     }
   }
 
+  // * 挂载普通元素节点
   const mountElement = (
     vnode: VNode,
     container: RendererElement,
