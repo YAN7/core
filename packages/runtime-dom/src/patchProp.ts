@@ -17,8 +17,8 @@ type DOMRendererOptions = RendererOptions<Node, Element>
 
 /**
  *
- ** @description 顾名思义，用来分发Prop的方法
- ** 主要处理了class,style,listener,value,attribute
+ * * @description 顾名思义，用来分发Prop的方法
+ * * 主要处理了class,style,listener,value,attribute
  */
 export const patchProp: DOMRendererOptions['patchProp'] = (
   el,

@@ -636,7 +636,21 @@ function baseCreateRenderer(
     }
   }
 
-  // * 挂载普通元素节点
+  /**
+   * * 挂载元素节点
+   * * 从vnode转换为真实dom
+   * * 顺序:
+   * * 1. 通过创建hostCreateElement创建一个基本的dom节点
+   * * 2. 根据 shapeFlag 的不同类型，挂载子节点。如果是文本子节点，则通过 hostSetElementText 方法设置元素的文本内容。如果是数组子节点，则调用 mountChildren 方法挂载子节点。
+   * * 3. 如果有指令列表,则执行指令的created钩子
+   * * 4. 根据setScopedId设置作用域 ID，用于样式隔离。
+   * * 5. 处理元素节点的属性。遍历 props 对象，调用 hostPatchProp 方法为元素节点设置属性，并处理特殊情况，如设置 value 属性。
+   * * 6. 如果有 onVnodeBeforeMount 钩子函数，则执行该钩子函数。
+   * * 7. 如果有指令列表，则执行指令的 beforeMount 钩子函数。
+   * * 8. 检查是否需要调用过渡钩子函数，并在需要时调用过渡的 beforeEnter 钩子函数。
+   * * 9. 将元素节点插入到容器中。
+   * * 10. 如果有 onVnodeMounted 钩子函数、需要调用过渡钩子函数或有指令列表，则将它们放入后续渲染效果队列中，以确保在渲染后调用。
+   */
   const mountElement = (
     vnode: VNode,
     container: RendererElement,
@@ -675,6 +689,7 @@ function baseCreateRenderer(
       )
     }
 
+    // * directives
     if (dirs) {
       invokeDirectiveHook(vnode, null, parentComponent, 'created')
     }
@@ -785,6 +800,9 @@ function baseCreateRenderer(
     }
   }
 
+  // * 使用 for 循环遍历子节点数组。在循环内部，首先根据优化模式来处理子节点。
+  // * 如果采用了优化模式，则调用 cloneIfMounted 函数来克隆子节点，否则调用 normalizeVNode 函数对子节点进行规范化处理。
+  // * 然后，调用 patch 函数来对子节点进行挂载或修补操作。
   const mountChildren: MountChildrenFn = (
     children,
     container,
