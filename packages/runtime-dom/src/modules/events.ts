@@ -47,7 +47,6 @@ export function patchEvent(
     existingInvoker.value = nextValue
   } else {
     const [name, options] = parseName(rawName)
-    console.log('rowName ==> ', rawName, name)
     if (nextValue) {
       // add
       const invoker = (invokers[rawName] = createInvoker(nextValue, instance))

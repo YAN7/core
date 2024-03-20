@@ -68,7 +68,6 @@ export const hydrate = ((...args) => {
 
 export const createApp = ((...args) => {
   // * 万物起源
-  console.log('args', args)
   // 创建渲染器对象
   const app = ensureRenderer().createApp(...args)
 
@@ -78,9 +77,12 @@ export const createApp = ((...args) => {
   }
 
   const { mount } = app
+  console.log('mount ==> ', mount)
   app.mount = (containerOrSelector: Element | ShadowRoot | string): any => {
     const container = normalizeContainer(containerOrSelector)
     if (!container) return
+
+    console.log('app._component ==> ', app._component)
 
     const component = app._component
     if (!isFunction(component) && !component.render && !component.template) {

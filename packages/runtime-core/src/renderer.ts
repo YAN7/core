@@ -815,6 +815,7 @@ function baseCreateRenderer(
     start = 0,
   ) => {
     for (let i = start; i < children.length; i++) {
+      // * 此时生成的还是vnode
       const child = (children[i] = optimized
         ? cloneIfMounted(children[i] as VNode)
         : normalizeVNode(children[i]))

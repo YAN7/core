@@ -89,9 +89,7 @@ function pluralize (n) {
   return n === 1 ? 'item' : 'items'
 }
 
-console.log('createApp ==> ', createApp)
-
-createApp({
+const app = createApp({
   setup () {
     const state = reactive({
       todos: todoStorage.fetch(),
@@ -203,7 +201,10 @@ createApp({
       }
     }
   }
-}).mount('#app')
+})
+
+app.mount('#app')
+
 </script>
 
 <style scoped>
