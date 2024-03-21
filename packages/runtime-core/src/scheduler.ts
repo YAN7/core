@@ -117,6 +117,7 @@ export function invalidateJob(job: SchedulerJob) {
   }
 }
 
+// * 留意这个函数
 export function queuePostFlushCb(cb: SchedulerJobs) {
   if (!isArray(cb)) {
     if (

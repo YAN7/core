@@ -1351,11 +1351,13 @@ function baseCreateRenderer(
       if (!instance.isMounted) {
         let vnodeHook: VNodeHook | null | undefined
         const { el, props } = initialVNode
+        // * 在这里取到onBeforeMount,onMounted钩子函数并执行
         const { bm, m, parent } = instance
         const isAsyncWrapperVNode = isAsyncWrapper(initialVNode)
 
         toggleRecurse(instance, false)
         // beforeMount hook
+        // * 在这里调用beforeMount钩子
         if (bm) {
           invokeArrayFns(bm)
         }
@@ -1436,6 +1438,7 @@ function baseCreateRenderer(
           initialVNode.el = subTree.el
         }
         // mounted hook
+        // * 在这里将mounted钩子推进队列
         if (m) {
           queuePostRenderEffect(m, parentSuspense)
         }
@@ -2408,6 +2411,7 @@ function baseCreateRenderer(
         namespace,
       )
     }
+    // * 这里会执行之前收集的所有队列
     if (!isFlushing) {
       isFlushing = true
       flushPreFlushCbs()
