@@ -91,7 +91,6 @@ function compileToFunction(
   }
 
   // code是生成dom的方法.toString形式
-  console.log(123123)
   const { code } = compile(template, opts)
 
   function onError(err: CompilerError, asWarning = false) {

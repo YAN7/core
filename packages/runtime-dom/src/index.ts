@@ -77,12 +77,9 @@ export const createApp = ((...args) => {
   }
 
   const { mount } = app
-  console.log('mount ==> ', mount)
   app.mount = (containerOrSelector: Element | ShadowRoot | string): any => {
     const container = normalizeContainer(containerOrSelector)
     if (!container) return
-
-    console.log('app._component ==> ', app._component)
 
     const component = app._component
     if (!isFunction(component) && !component.render && !component.template) {

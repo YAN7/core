@@ -781,6 +781,7 @@ function setupStatefulComponent(
     exposePropsOnRenderContext(instance)
   }
   // 2. call setup()
+  // * 大名鼎鼎的setup，我找到你了
   const { setup } = Component
   if (setup) {
     const setupContext = (instance.setupContext =

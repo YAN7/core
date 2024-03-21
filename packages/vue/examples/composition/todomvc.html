@@ -122,10 +122,19 @@ const app = createApp({
       todoStorage.save(state.todos)
     })
 
-    onMounted(() => {
+    onMounted(function() {
+			console.log('onMounted来了' )
       window.addEventListener('hashchange', onHashChange)
       onHashChange()
-    })
+			return 123
+		})
+
+		// * 他就是一个函数啊，他理所应当会执行啊，只是啥时候执行呢
+		// * 里面的方法是onMounted的一个参数
+		// * 实际上它一共接收两个参数：hook,target
+		onMounted(function() {
+			console.log('onMounted来了2222' )
+		})
 
     onUnmounted(() => {
       window.removeEventListener('hashchange', onHashChange)

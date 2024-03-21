@@ -25,6 +25,7 @@ export function injectHook(
 ): Function | undefined {
   if (target) {
     const hooks = target[type] || (target[type] = [])
+    // console.log('hooks ==> ', hooks)
     // cache the error handling wrapper for injected hooks so the same hook
     // can be properly deduped by the scheduler. "__weh" stands for "with error
     // handling".
@@ -66,6 +67,12 @@ export function injectHook(
   }
 }
 
+// export const createHook =
+//   (lifecycle: any) =>
+//   (hook: any, target: any) =>
+//     injectHook(lifecycle, (...args: unknown[]) => hook(...args), target)
+
+// * 这是一个用来创建hook的典型的工厂函数
 export const createHook =
   <T extends Function = () => any>(lifecycle: LifecycleHooks) =>
   (hook: T, target: ComponentInternalInstance | null = currentInstance) =>
