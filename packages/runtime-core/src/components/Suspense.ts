@@ -1,3 +1,18 @@
+import { ShapeFlags, isArray, isFunction, toNumber } from '@vue/shared'
+import { type ComponentInternalInstance, handleSetupResult } from '../component'
+import { filterSingleRoot, updateHOCHostEl } from '../componentRenderUtils'
+import type { Slots } from '../componentSlots'
+import { ErrorCodes, handleError } from '../errorHandling'
+import { NULL_DYNAMIC_COMPONENT } from '../helpers/resolveAssets'
+import {
+  type ElementNamespace,
+  MoveType,
+  type RendererElement,
+  type RendererInternals,
+  type RendererNode,
+  type SetupRenderEffectFn,
+} from '../renderer'
+import { queuePostFlushCb } from '../scheduler'
 import {
   Comment,
   type VNode,
@@ -10,27 +25,12 @@ import {
   normalizeVNode,
   openBlock,
 } from '../vnode'
-import { ShapeFlags, isArray, isFunction, toNumber } from '@vue/shared'
-import { type ComponentInternalInstance, handleSetupResult } from '../component'
-import type { Slots } from '../componentSlots'
-import {
-  type ElementNamespace,
-  MoveType,
-  type RendererElement,
-  type RendererInternals,
-  type RendererNode,
-  type SetupRenderEffectFn,
-} from '../renderer'
-import { queuePostFlushCb } from '../scheduler'
-import { filterSingleRoot, updateHOCHostEl } from '../componentRenderUtils'
 import {
   assertNumber,
   popWarningContext,
   pushWarningContext,
   warn,
 } from '../warning'
-import { ErrorCodes, handleError } from '../errorHandling'
-import { NULL_DYNAMIC_COMPONENT } from '../helpers/resolveAssets'
 
 export interface SuspenseProps {
   onResolve?: () => void

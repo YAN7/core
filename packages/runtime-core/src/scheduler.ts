@@ -1,6 +1,6 @@
-import { ErrorCodes, callWithErrorHandling, handleError } from './errorHandling'
 import { type Awaited, NOOP, isArray } from '@vue/shared'
 import { type ComponentInternalInstance, getComponentName } from './component'
+import { ErrorCodes, callWithErrorHandling, handleError } from './errorHandling'
 
 export interface SchedulerJob extends Function {
   id?: number

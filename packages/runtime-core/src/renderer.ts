@@ -1,3 +1,61 @@
+import { ReactiveEffect, pauseTracking, resetTracking } from '@vue/reactivity'
+import {
+  EMPTY_ARR,
+  EMPTY_OBJ,
+  NOOP,
+  PatchFlags,
+  ShapeFlags,
+  getGlobalThis,
+  invokeArrayFns,
+  isArray,
+  isReservedProp,
+} from '@vue/shared'
+import { isAsyncWrapper } from './apiAsyncComponent'
+import { type CreateAppFunction, createAppAPI } from './apiCreateApp'
+import { DeprecationTypes, isCompatEnabled } from './compat/compatConfig'
+import {
+  type ComponentInternalInstance,
+  type ComponentOptions,
+  type Data,
+  createComponentInstance,
+  setupComponent,
+} from './component'
+import { updateProps } from './componentProps'
+import {
+  filterSingleRoot,
+  renderComponentRoot,
+  shouldUpdateComponent,
+  updateHOCHostEl,
+} from './componentRenderUtils'
+import type { TransitionHooks } from './components/BaseTransition'
+import { type KeepAliveContext, isKeepAlive } from './components/KeepAlive'
+import {
+  type SuspenseBoundary,
+  type SuspenseImpl,
+  queueEffectWithSuspense,
+} from './components/Suspense'
+import type { TeleportImpl, TeleportVNode } from './components/Teleport'
+import { updateSlots } from './componentSlots'
+import {
+  devtoolsComponentAdded,
+  devtoolsComponentRemoved,
+  devtoolsComponentUpdated,
+  setDevtoolsHook,
+} from './devtools'
+import { invokeDirectiveHook } from './directives'
+import { initFeatureFlags } from './featureFlags'
+import { isHmrUpdating, registerHMR, unregisterHMR } from './hmr'
+import { type RootHydrateFunction, createHydrationFunctions } from './hydration'
+import { endMeasure, startMeasure } from './profiling'
+import { setRef } from './rendererTemplateRef'
+import {
+  type SchedulerJob,
+  flushPostFlushCbs,
+  flushPreFlushCbs,
+  invalidateJob,
+  queueJob,
+  queuePostFlushCb,
+} from './scheduler'
 import {
   Comment,
   Fragment,
@@ -13,66 +71,7 @@ import {
   isSameVNodeType,
   normalizeVNode,
 } from './vnode'
-import {
-  type ComponentInternalInstance,
-  type ComponentOptions,
-  type Data,
-  createComponentInstance,
-  setupComponent,
-} from './component'
-import {
-  filterSingleRoot,
-  renderComponentRoot,
-  shouldUpdateComponent,
-  updateHOCHostEl,
-} from './componentRenderUtils'
-import {
-  EMPTY_ARR,
-  EMPTY_OBJ,
-  NOOP,
-  PatchFlags,
-  ShapeFlags,
-  getGlobalThis,
-  invokeArrayFns,
-  isArray,
-  isReservedProp,
-} from '@vue/shared'
-import {
-  type SchedulerJob,
-  flushPostFlushCbs,
-  flushPreFlushCbs,
-  invalidateJob,
-  queueJob,
-  queuePostFlushCb,
-} from './scheduler'
-import { ReactiveEffect, pauseTracking, resetTracking } from '@vue/reactivity'
-import { updateProps } from './componentProps'
-import { updateSlots } from './componentSlots'
 import { popWarningContext, pushWarningContext, warn } from './warning'
-import { type CreateAppFunction, createAppAPI } from './apiCreateApp'
-import { setRef } from './rendererTemplateRef'
-import {
-  type SuspenseBoundary,
-  type SuspenseImpl,
-  queueEffectWithSuspense,
-} from './components/Suspense'
-import type { TeleportImpl, TeleportVNode } from './components/Teleport'
-import { type KeepAliveContext, isKeepAlive } from './components/KeepAlive'
-import { isHmrUpdating, registerHMR, unregisterHMR } from './hmr'
-import { type RootHydrateFunction, createHydrationFunctions } from './hydration'
-import { invokeDirectiveHook } from './directives'
-import { endMeasure, startMeasure } from './profiling'
-import {
-  devtoolsComponentAdded,
-  devtoolsComponentRemoved,
-  devtoolsComponentUpdated,
-  setDevtoolsHook,
-} from './devtools'
-import { initFeatureFlags } from './featureFlags'
-import { isAsyncWrapper } from './apiAsyncComponent'
-import { isCompatEnabled } from './compat/compatConfig'
-import { DeprecationTypes } from './compat/compatConfig'
-import type { TransitionHooks } from './components/BaseTransition'
 
 export interface Renderer<HostElement = RendererElement> {
   render: RootRenderFunction<HostElement>

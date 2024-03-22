@@ -221,9 +221,9 @@ function normalizeContainer(
 
 // Custom element support
 export {
+  VueElement,
   defineCustomElement,
   defineSSRCustomElement,
-  VueElement,
   type VueElementConstructor,
 } from './apiCustomElement'
 
@@ -240,13 +240,13 @@ export {
 
 // **Internal** DOM-only runtime directive helpers
 export {
-  vModelText,
   vModelCheckbox,
+  vModelDynamic,
   vModelRadio,
   vModelSelect,
-  vModelDynamic,
+  vModelText,
 } from './directives/vModel'
-export { withModifiers, withKeys } from './directives/vOn'
+export { withKeys, withModifiers } from './directives/vOn'
 export { vShow } from './directives/vShow'
 
 import { initVModelForSSR } from './directives/vModel'

@@ -53,7 +53,7 @@
 </div>
 
 <script>
-const { createApp, reactive, computed, watchEffect, onMounted, onUnmounted } = Vue
+const { createApp, reactive, computed, watchEffect, onMounted, onUnmounted, onBeforeMount } = Vue
 const STORAGE_KEY = 'todos-vuejs-3.x'
 const todoStorage = {
   fetch () {
@@ -132,13 +132,14 @@ const app = createApp({
 		// * 他就是一个函数啊，他理所应当会执行啊，只是啥时候执行呢
 		// * 里面的方法是onMounted的一个参数
 		// * 实际上它一共接收两个参数：hook,target
-		onMounted(function() {
-			console.log('onMounted来了2222' )
+		onBeforeMount(() => {
+			console.log('onBeforeMount来了')
 		})
 
     onUnmounted(() => {
       window.removeEventListener('hashchange', onHashChange)
     })
+		
 
     function onHashChange () {
       const visibility = window.location.hash.replace(/#\/?/, '')
