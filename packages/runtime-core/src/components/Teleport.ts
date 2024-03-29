@@ -1,5 +1,6 @@
+import { ShapeFlags, isString } from '@vue/shared'
 import type { ComponentInternalInstance } from '../component'
-import type { SuspenseBoundary } from './Suspense'
+import { isHmrUpdating } from '../hmr'
 import {
   type ElementNamespace,
   MoveType,
@@ -10,9 +11,8 @@ import {
   traverseStaticChildren,
 } from '../renderer'
 import type { VNode, VNodeArrayChildren, VNodeProps } from '../vnode'
-import { ShapeFlags, isString } from '@vue/shared'
 import { warn } from '../warning'
-import { isHmrUpdating } from '../hmr'
+import type { SuspenseBoundary } from './Suspense'
 
 export type TeleportVNode = VNode<RendererNode, RendererElement, TeleportProps>
 

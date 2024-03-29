@@ -42,6 +42,7 @@ let renderer: Renderer<Element | ShadowRoot> | HydrationRenderer
 
 let enabledHydration = false
 
+// * 确认渲染器
 function ensureRenderer() {
   return (
     renderer ||

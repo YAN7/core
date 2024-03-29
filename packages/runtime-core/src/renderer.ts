@@ -295,6 +295,9 @@ export const queuePostRenderEffect = __FEATURE_SUSPENSE__
  * })
  * ```
  */
+/**
+ * * 创建渲染器
+ */
 export function createRenderer<
   HostNode = RendererNode,
   HostElement = RendererElement,
@@ -326,6 +329,9 @@ function baseCreateRenderer(
 
 // 实现
 // implementation
+/**
+ * * 创建渲染器的最底层函数
+ */
 function baseCreateRenderer(
   options: RendererOptions,
   createHydrationFns?: typeof createHydrationFunctions,
@@ -335,8 +341,9 @@ function baseCreateRenderer(
     initFeatureFlags()
   }
 
-  // 判断是浏览器还是node环境
+  // * 判断是浏览器还是node环境
   const target = getGlobalThis()
+  // * 可以通过window.__VUE__来判断是否用的vue3
   target.__VUE__ = true
   if (__DEV__ || __FEATURE_PROD_DEVTOOLS__) {
     setDevtoolsHook(target.__VUE_DEVTOOLS_GLOBAL_HOOK__, target)
@@ -359,7 +366,7 @@ function baseCreateRenderer(
 
   // Note: functions inside this closure should use `const xxx = () => {}`
   // style in order to prevent being inlined by minifiers.
-  // * 用来更新虚拟dom
+  // * 用来更新vnode
   // * n1为旧节点, n2为新节点
   const patch: PatchFn = (
     n1,
@@ -525,6 +532,7 @@ function baseCreateRenderer(
     }
   }
 
+  // * 用于挂载静态节点到指定的容器中。
   const mountStaticNode = (
     n2: VNode,
     container: RendererElement,
@@ -546,6 +554,7 @@ function baseCreateRenderer(
   /**
    * Dev / HMR only
    */
+  // * 在开发环境或热模块重载（HMR）时更新静态节点
   const patchStaticNode = (
     n1: VNode,
     n2: VNode,
@@ -570,6 +579,7 @@ function baseCreateRenderer(
     }
   }
 
+  // * 移动静态节点
   const moveStaticNode = (
     { el, anchor }: VNode,
     container: RendererElement,
@@ -594,6 +604,7 @@ function baseCreateRenderer(
     hostRemove(anchor!)
   }
 
+  // * 用于处理普通元素的创建或更新。
   const processElement = (
     n1: VNode | null,
     n2: VNode,
@@ -638,6 +649,7 @@ function baseCreateRenderer(
   /**
    * * 挂载元素节点
    * * 从vnode转换为真实dom
+   * @param anthor 插入位置的锚点，表示在该节点之前插入。
    * * 顺序:
    * * 1. 通过创建hostCreateElement创建一个基本的dom节点
    * * 2. 根据 shapeFlag 的不同类型，挂载子节点。如果是文本子节点，则通过 hostSetElementText 方法设置元素的文本内容。如果是数组子节点，则调用 mountChildren 方法挂载子节点。
@@ -664,6 +676,7 @@ function baseCreateRenderer(
     let vnodeHook: VNodeHook | undefined | null
     const { props, shapeFlag, transition, dirs } = vnode
 
+    // * 通过创建hostCreateElement创建一个基本的dom节点
     el = vnode.el = hostCreateElement(
       vnode.type as string,
       namespace,
@@ -673,6 +686,7 @@ function baseCreateRenderer(
 
     // mount children first, since some props may rely on child content
     // being already rendered, e.g. `<select value>`
+    // * 根据 shapeFlag 的不同类型，挂载子节点。如果是文本子节点，则通过 hostSetElementText 方法设置元素的文本内容。如果是数组子节点，则调用 mountChildren 方法挂载子节点。
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
       hostSetElementText(el, vnode.children as string)
     } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
@@ -688,13 +702,15 @@ function baseCreateRenderer(
       )
     }
 
-    // * directives
+    // * 如果有指令列表,则执行指令的created钩子
     if (dirs) {
       invokeDirectiveHook(vnode, null, parentComponent, 'created')
     }
     // scopeId
+    // * 根据setScopedId设置作用域 ID，用于样式隔离。
     setScopeId(el, vnode, vnode.scopeId, slotScopeIds, parentComponent)
     // props
+    // * 处理元素节点的属性。遍历 props 对象，调用 hostPatchProp 方法为元素节点设置属性，并处理特殊情况，如设置 value 属性。
     if (props) {
       for (const key in props) {
         if (key !== 'value' && !isReservedProp(key)) {
@@ -723,6 +739,7 @@ function baseCreateRenderer(
       if ('value' in props) {
         hostPatchProp(el, 'value', null, props.value, namespace)
       }
+      // * 如果有 onVnodeBeforeMount 钩子函数，则执行该钩子函数。
       if ((vnodeHook = props.onVnodeBeforeMount)) {
         invokeVNodeHook(vnodeHook, parentComponent, vnode)
       }
@@ -738,16 +755,20 @@ function baseCreateRenderer(
         enumerable: false,
       })
     }
+    // * 如果有指令列表，则执行指令的 beforeMount 钩子函数。
     if (dirs) {
       invokeDirectiveHook(vnode, null, parentComponent, 'beforeMount')
     }
     // #1583 For inside suspense + suspense not resolved case, enter hook should call when suspense resolved
     // #1689 For inside suspense + suspense resolved case, just call it
+    // * 检查是否需要调用过渡钩子函数，并在需要时调用过渡的 beforeEnter 钩子函数。
     const needCallTransitionHooks = needTransition(parentSuspense, transition)
     if (needCallTransitionHooks) {
       transition!.beforeEnter(el)
     }
+    // * 将元素节点插入到容器中。
     hostInsert(el, container, anchor)
+    // * 如果有 onVnodeMounted 钩子函数、需要调用过渡钩子函数或有指令列表，则将它们放入后续渲染效果队列中，以确保在渲染后调用。
     if (
       (vnodeHook = props && props.onVnodeMounted) ||
       needCallTransitionHooks ||
@@ -761,6 +782,7 @@ function baseCreateRenderer(
     }
   }
 
+  // * 用于为元素设置作用域 ID。作用域 ID 是为了在样式作用域隔离的情况下确保组件样式不会影响到其他组件。
   const setScopeId = (
     el: RendererElement,
     vnode: VNode,
