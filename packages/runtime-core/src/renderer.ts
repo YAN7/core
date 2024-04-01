@@ -27,6 +27,7 @@ import {
   shouldUpdateComponent,
   updateHOCHostEl,
 } from './componentRenderUtils'
+import { updateSlots } from './componentSlots'
 import type { TransitionHooks } from './components/BaseTransition'
 import { type KeepAliveContext, isKeepAlive } from './components/KeepAlive'
 import {
@@ -35,7 +36,6 @@ import {
   queueEffectWithSuspense,
 } from './components/Suspense'
 import type { TeleportImpl, TeleportVNode } from './components/Teleport'
-import { updateSlots } from './componentSlots'
 import {
   devtoolsComponentAdded,
   devtoolsComponentRemoved,
@@ -1382,6 +1382,7 @@ function baseCreateRenderer(
     }
 
     // inject renderer internals for keepAlive
+    // * 如果组件是 KeepAlive 组件，则需要将渲染器内部注入到组件实例的上下文中，以便在 KeepAlive 中可以调用渲染器内部的方法。
     if (isKeepAlive(initialVNode)) {
       ;(instance.ctx as KeepAliveContext).renderer = internals
     }
@@ -1391,6 +1392,8 @@ function baseCreateRenderer(
       if (__DEV__) {
         startMeasure(instance, `init`)
       }
+      // * 如果组件实例不是从兼容性模式 (compatMountInstance) 中获取的，则需要解析组件的 props 和 slots。这一步是通过调用 setupComponent 函数来实现的。
+      // * `setupComponent 函数用于初始化组件的状态，包括处理 props、slots、组件内部状态等。
       setupComponent(instance)
       if (__DEV__) {
         endMeasure(instance, `init`)
@@ -1399,16 +1402,20 @@ function baseCreateRenderer(
 
     // setup() is async. This component relies on async logic to be resolved
     // before proceeding
+    // * 如果组件具有异步依赖 (instance.asyncDep)，则需要在父 Suspense 上下文中注册这个依赖项。这是为了在异步逻辑被解决之前，暂停组件的渲染，并在适当的时机恢复渲染。
     if (__FEATURE_SUSPENSE__ && instance.asyncDep) {
       parentSuspense && parentSuspense.registerDep(instance, setupRenderEffect)
 
       // Give it a placeholder if this is not hydration
       // TODO handle self-defined fallback
+      // * 如果组件没有挂载到 DOM 中（即没有 initialVNode.el），则会创建一个注释节点作为组件的占位符。
       if (!initialVNode.el) {
         const placeholder = (instance.subTree = createVNode(Comment))
         processCommentNode(null, placeholder, container!, anchor)
       }
     } else {
+      // * 最后，调用 setupRenderEffect 函数执行渲染效果，将组件的内容渲染到 DOM 中。
+      // * `setupRenderEffect 函数会处理组件的子组件、生命周期钩子等，并将组件的内容挂载到指定的容器元素中。
       setupRenderEffect(
         instance,
         initialVNode,
