@@ -55,8 +55,10 @@ export const nodeOps: Omit<RendererOptions<Node, Element>, 'patchProp'> = {
 
   querySelector: selector => doc.querySelector(selector),
 
+  // * 给el这个元素设置{id}这个属性，用于样式隔离
+  // * 例子: el.setAttribute('data-v-12879', '')
   setScopeId(el, id) {
-    // el.setAttribute(id, '')
+    el.setAttribute(id, '')
   },
 
   // __UNSAFE__
