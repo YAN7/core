@@ -1,9 +1,20 @@
+import { PatchFlags, ShapeFlags, isModelListener, isOn } from '@vue/shared'
+import {
+  DeprecationTypes,
+  isCompatEnabled,
+  warnDeprecation,
+} from './compat/compatConfig'
 import {
   type ComponentInternalInstance,
   type Data,
   type FunctionalComponent,
   getComponentName,
 } from './component'
+import { isEmitListener } from './componentEmits'
+import type { NormalizedProps } from './componentProps'
+import { setCurrentRenderingInstance } from './componentRenderContext'
+import { ErrorCodes, handleError } from './errorHandling'
+import { isHmrUpdating } from './hmr'
 import {
   Comment,
   type VNode,
@@ -14,18 +25,7 @@ import {
   isVNode,
   normalizeVNode,
 } from './vnode'
-import { ErrorCodes, handleError } from './errorHandling'
-import { PatchFlags, ShapeFlags, isModelListener, isOn } from '@vue/shared'
 import { warn } from './warning'
-import { isHmrUpdating } from './hmr'
-import type { NormalizedProps } from './componentProps'
-import { isEmitListener } from './componentEmits'
-import { setCurrentRenderingInstance } from './componentRenderContext'
-import {
-  DeprecationTypes,
-  isCompatEnabled,
-  warnDeprecation,
-} from './compat/compatConfig'
 
 /**
  * dev only flag to track whether $attrs was used during render.

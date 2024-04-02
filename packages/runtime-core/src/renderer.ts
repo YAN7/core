@@ -1426,9 +1426,18 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * 用于更新组件
+   * @param n1 旧子节点
+   * @param n2 新子节点
+   * @param optimized 是否使用优化模式
+   */
   const updateComponent = (n1: VNode, n2: VNode, optimized: boolean) => {
+    // * 获取组件实例instance
     const instance = (n2.component = n1.component)!
     if (shouldUpdateComponent(n1, n2, optimized)) {
+      // * 如果组件处于异步状态且仍处于待处理状态 (instance.asyncDep && !instance.asyncResolved)，则表示组件的渲染效果尚未设置完成。
+      // * 在这种情况下，只需更新 props 和 slots，并且不需要执行渲染效果。
       if (
         __FEATURE_SUSPENSE__ &&
         instance.asyncDep &&
@@ -1446,21 +1455,35 @@ function baseCreateRenderer(
         return
       } else {
         // normal update
+        // * 如果组件需要进行正常的更新，首先将 n2 设置为下一个要处理的 vnode (instance.next = n2)。。接着，
         instance.next = n2
         // in case the child component is also queued, remove it to avoid
         // double updating the same child component in the same flush.
+        // * 然后，使之前的渲染效果失效，以避免在同一次刷新中重复更新相同的子组件
         invalidateJob(instance.update)
         // instance.update is the reactive effect.
+        // * 将渲染效果标记为需要更新，并执行组件的更新操作 (instance.update())
         instance.effect.dirty = true
         instance.update()
       }
     } else {
       // no update needed. just copy over properties
+      // * 如果不需要更新，直接将`n2`的DOM元素设置为与`n1`相同，并更新组件实例的vnode
       n2.el = n1.el
       instance.vnode = n2
     }
   }
 
+  /**
+   * * 用于创建组件的渲染逻辑，并确保在组件状态发生变化时进行更新，并且处理了异步组件加载、生命周期钩子函数的调用以及开发者工具相关逻辑。
+   * @param instance 组件实例对象，包含了组件的状态、方法等信息。
+   * @param initialVNode 组件的初始虚拟节点，描述了组件的初始状态
+   * @param container 组件挂载的容器元素，即组件将被挂载到这个元素下
+   * @param anchor 挂载的位置，即组件在容器元素中的插入位置
+   * @param parentSuspense 父级 Suspense 边界实例，用于处理异步组件渲染过程中的等待和回退逻辑。
+   * @param namespace 命名空间，用于创建 DOM 元素时指定的命名空间。
+   * @param optimized 是否启用了优化
+   */
   const setupRenderEffect: SetupRenderEffectFn = (
     instance,
     initialVNode,
@@ -1470,7 +1493,9 @@ function baseCreateRenderer(
     namespace: ElementNamespace,
     optimized,
   ) => {
+    // * 用于执行组件的更新逻辑。根据组件是否已经挂载，执行相应的更新操作。
     const componentUpdateFn = () => {
+      // * 如果组件尚未挂载，则执行初始化渲染逻辑
       if (!instance.isMounted) {
         let vnodeHook: VNodeHook | null | undefined
         const { el, props } = initialVNode
@@ -1485,6 +1510,10 @@ function baseCreateRenderer(
           invokeArrayFns(bm)
         }
         // onVnodeBeforeMount
+        /**
+         * * 在这里调用onVnodeBeforeMount钩子
+         * @see https://blog.csdn.net/qq449245884/article/details/128230254
+         */
         if (
           !isAsyncWrapperVNode &&
           (vnodeHook = props && props.onVnodeBeforeMount)
@@ -1495,10 +1524,12 @@ function baseCreateRenderer(
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
         ) {
+          // * vue2的onVnodeBeforeMount的写法
           instance.emit('hook:beforeMount')
         }
         toggleRecurse(instance, true)
 
+        // * 如果是通过 `hydrateNode` 进行服务器端渲染（SSR）的情况，则执行 hydrate 相关的逻辑。
         if (el && hydrateNode) {
           // vnode has adopted host node - perform hydration instead of mount.
           const hydrateSubTree = () => {
@@ -1539,6 +1570,7 @@ function baseCreateRenderer(
           if (__DEV__) {
             startMeasure(instance, `render`)
           }
+          // * 生成组件的子树
           const subTree = (instance.subTree = renderComponentRoot(instance))
           if (__DEV__) {
             endMeasure(instance, `render`)
@@ -1546,6 +1578,7 @@ function baseCreateRenderer(
           if (__DEV__) {
             startMeasure(instance, `patch`)
           }
+          // * 将子树挂载到容器元素中。
           patch(
             null,
             subTree,
@@ -1561,11 +1594,12 @@ function baseCreateRenderer(
           initialVNode.el = subTree.el
         }
         // mounted hook
-        // * 在这里将mounted钩子推进队列
+        // * 执行组件的 `mounted` 钩子函数 (`m`)，并将其推入队列以在渲染完成后执行。
         if (m) {
           queuePostRenderEffect(m, parentSuspense)
         }
         // onVnodeMounted
+        // * 执行组件的 `onVnodeMounted` 钩子函数，如果存在的话。
         if (
           !isAsyncWrapperVNode &&
           (vnodeHook = props && props.onVnodeMounted)
@@ -1576,6 +1610,7 @@ function baseCreateRenderer(
             parentSuspense,
           )
         }
+        // * 执行组件的 `hook:mounted` 兼容事件（如果开启了兼容性模式）。
         if (
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -1589,6 +1624,7 @@ function baseCreateRenderer(
         // activated hook for keep-alive roots.
         // #1742 activated hook must be accessed after first render
         // since the hook may be injected by a child keep-alive
+        // * 执行组件的 `hook:activated` 钩子函数，如果存在并且开启了兼容性模式的话。
         if (
           initialVNode.shapeFlag & ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE ||
           (parent &&
@@ -1606,6 +1642,7 @@ function baseCreateRenderer(
             )
           }
         }
+        // * 标记组件已挂载
         instance.isMounted = true
 
         if (__DEV__ || __FEATURE_PROD_DEVTOOLS__) {
@@ -1613,8 +1650,10 @@ function baseCreateRenderer(
         }
 
         // #2458: deference mount-only object parameters to prevent memleaks
+        // * 将 initialVNode、container、anchor 等参数置为 null，以防止内存泄漏。
         initialVNode = container = anchor = null as any
       } else {
+        // * 如果组件已经挂载，则执行更新渲染逻辑
         let { next, bu, u, parent, vnode } = instance
 
         if (__FEATURE_SUSPENSE__) {
@@ -1624,6 +1663,7 @@ function baseCreateRenderer(
           if (nonHydratedAsyncRoot) {
             // only sync the properties and abort the rest of operations
             if (next) {
+              // * 获取组件的下一个虚拟节点 (`next`)，并将其与当前组件实例绑定。
               next.el = vnode.el
               updateComponentPreRender(instance, next, optimized)
             }
@@ -1657,13 +1697,16 @@ function baseCreateRenderer(
         }
 
         // beforeUpdate hook
+        // * 执行组件的 `beforeUpdate` 钩子函数 (`bu`)，如果存在的话。
         if (bu) {
           invokeArrayFns(bu)
         }
         // onVnodeBeforeUpdate
+        // * 执行组件的 `onVnodeUpdated` 钩子函数，如果存在的话。
         if ((vnodeHook = next.props && next.props.onVnodeBeforeUpdate)) {
           invokeVNodeHook(vnodeHook, parent, next, vnode)
         }
+        // * 执行组件的 `hook:updated` 兼容事件（如果开启了兼容性模式）。
         if (
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -1686,6 +1729,7 @@ function baseCreateRenderer(
         if (__DEV__) {
           startMeasure(instance, `patch`)
         }
+        // * 将子树挂载到容器元素中。
         patch(
           prevTree,
           nextTree,
@@ -1708,16 +1752,19 @@ function baseCreateRenderer(
           updateHOCHostEl(instance, nextTree.el)
         }
         // updated hook
+        // * 执行组件的 `updated` 钩子函数 (`u`)，并将其推入队列以在渲染完成后执行。
         if (u) {
           queuePostRenderEffect(u, parentSuspense)
         }
         // onVnodeUpdated
+        // * 执行组件的 `onVnodeUpdated` 钩子函数，如果存在的话。
         if ((vnodeHook = next.props && next.props.onVnodeUpdated)) {
           queuePostRenderEffect(
             () => invokeVNodeHook(vnodeHook!, parent, next!, vnode),
             parentSuspense,
           )
         }
+        // * 执行组件的 `hook:updated` 兼容事件（如果开启了兼容性模式）。
         if (
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -1739,6 +1786,7 @@ function baseCreateRenderer(
     }
 
     // create reactive effect for rendering
+    // * 使用 ReactiveEffect 类创建了一个响应式效果对象 effect，其回调函数为 componentUpdateFn，在每次状态发生变化时会执行更新操作。
     const effect = (instance.effect = new ReactiveEffect(
       componentUpdateFn,
       NOOP,
@@ -1746,6 +1794,7 @@ function baseCreateRenderer(
       instance.scope, // track it in component's effect scope
     ))
 
+    // * 创建了一个名为 update 的函数，用于触发响应式效果的运行。该函数在组件的更新方法中被调用。
     const update: SchedulerJob = (instance.update = () => {
       if (effect.dirty) {
         effect.run()
@@ -1766,9 +1815,16 @@ function baseCreateRenderer(
       update.ownerInstance = instance
     }
 
+    // * 触发组件的更新过程
     update()
   }
 
+  /**
+   * 用于在组件渲染前更新组件的相关状态和属性
+   * @param instance 组件实例
+   * @param nextVNode 组件即将更新到的vnode
+   * @param optimized 是否已经经过了优化
+   */
   const updateComponentPreRender = (
     instance: ComponentInternalInstance,
     nextVNode: VNode,
