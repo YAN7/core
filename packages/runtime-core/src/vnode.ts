@@ -1,4 +1,11 @@
 import {
+  type ReactiveFlags,
+  type Ref,
+  isProxy,
+  isRef,
+  toRaw,
+} from '@vue/reactivity'
+import {
   EMPTY_ARR,
   PatchFlags,
   ShapeFlags,
@@ -12,6 +19,10 @@ import {
   normalizeClass,
   normalizeStyle,
 } from '@vue/shared'
+import type { AppContext } from './apiCreateApp'
+import { convertLegacyComponent } from './compat/component'
+import { convertLegacyVModelProps } from './compat/componentVModel'
+import { defineLegacyVNodeProperties } from './compat/renderFn'
 import {
   type ClassComponent,
   type Component,
@@ -20,41 +31,30 @@ import {
   type Data,
   isClassComponent,
 } from './component'
-import type { RawSlots } from './componentSlots'
+import type { ComponentPublicInstance } from './componentPublicInstance'
 import {
-  type ReactiveFlags,
-  type Ref,
-  isProxy,
-  isRef,
-  toRaw,
-} from '@vue/reactivity'
-import type { AppContext } from './apiCreateApp'
+  currentRenderingInstance,
+  currentScopeId,
+} from './componentRenderContext'
+import type { TransitionHooks } from './components/BaseTransition'
 import {
   type Suspense,
   type SuspenseBoundary,
   type SuspenseImpl,
   isSuspense,
 } from './components/Suspense'
-import type { DirectiveBinding } from './directives'
-import type { TransitionHooks } from './components/BaseTransition'
-import { warn } from './warning'
 import {
   type Teleport,
   type TeleportImpl,
   isTeleport,
 } from './components/Teleport'
-import {
-  currentRenderingInstance,
-  currentScopeId,
-} from './componentRenderContext'
-import type { RendererElement, RendererNode } from './renderer'
+import type { RawSlots } from './componentSlots'
+import type { DirectiveBinding } from './directives'
+import { ErrorCodes, callWithAsyncErrorHandling } from './errorHandling'
 import { NULL_DYNAMIC_COMPONENT } from './helpers/resolveAssets'
 import { hmrDirtyComponents } from './hmr'
-import { convertLegacyComponent } from './compat/component'
-import { convertLegacyVModelProps } from './compat/componentVModel'
-import { defineLegacyVNodeProperties } from './compat/renderFn'
-import { ErrorCodes, callWithAsyncErrorHandling } from './errorHandling'
-import type { ComponentPublicInstance } from './componentPublicInstance'
+import type { RendererElement, RendererNode } from './renderer'
+import { warn } from './warning'
 
 export const Fragment = Symbol.for('v-fgt') as any as {
   __isFragment: true

@@ -1830,20 +1830,37 @@ function baseCreateRenderer(
     nextVNode: VNode,
     optimized: boolean,
   ) => {
+    // * 将 `nextVNode` 的组件属性 `component` 设置为当前组件实例 `instance`，以确保组件实例能够正确地关联到该 VNode。
     nextVNode.component = instance
     const prevProps = instance.vnode.props
+    // * 更新组件实例的 `vnode` 属性为 `nextVNode`，表示当前渲染的 VNode 已经更新为 `nextVNode`。
     instance.vnode = nextVNode
+    // * 将 `instance.next` 设置为 `null`，表示在更新过程中不再需要下一个 VNode。
     instance.next = null
+    // * 更新组件实例的属性，将 `nextVNode.props` 中的属性更新到组件实例中，并处理优化逻辑。
     updateProps(instance, nextVNode.props, prevProps, optimized)
+    // * 更新组件实例的插槽内容，将 `nextVNode.children` 中的插槽内容更新到组件实例中，并处理优化逻辑。
     updateSlots(instance, nextVNode.children, optimized)
 
     pauseTracking()
     // props update may have triggered pre-flush watchers.
     // flush them before the render update.
+    // * 重置依赖追踪的状态，以准备下一次的渲染更新。
     flushPreFlushCbs(instance)
     resetTracking()
   }
-
+  /**
+   * 用于对比并更新组件的子节点
+   * @param n1 旧的vnode
+   * @param n2 新的vnode
+   * @param container 子节点的父容器元素
+   * @param anchor 插入位置的参考节点
+   * @param parentComponent 父组件的内部实例
+   * @param parentSuspense 父边界的悬挂容器
+   * @param namespace 元素的命名空间
+   * @param slotScopeIds 插槽作用域的标识数组
+   * @param optimized 是否已经经过了优化
+   */
   const patchChildren: PatchChildrenFn = (
     n1,
     n2,
@@ -1865,6 +1882,7 @@ function baseCreateRenderer(
       if (patchFlag & PatchFlags.KEYED_FRAGMENT) {
         // this could be either fully-keyed or mixed (some keyed some not)
         // presence of patchFlag means children are guaranteed to be arrays
+        // * children没有key属性
         patchKeyedChildren(
           c1 as VNode[],
           c2 as VNodeArrayChildren,
@@ -1879,6 +1897,7 @@ function baseCreateRenderer(
         return
       } else if (patchFlag & PatchFlags.UNKEYED_FRAGMENT) {
         // unkeyed
+        // * children有key属性
         patchUnkeyedChildren(
           c1 as VNode[],
           c2 as VNodeArrayChildren,
@@ -1895,17 +1914,22 @@ function baseCreateRenderer(
     }
 
     // children has 3 possibilities: text, array or no children.
+    // * 文本节点
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
       // text children fast path
+      // * 如果旧节点的形状标志 `prevShapeFlag` 是数组子节点，则卸载旧的子节点。
       if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
         unmountChildren(c1 as VNode[], parentComponent, parentSuspense)
       }
+      // * 如果新旧子节点不相同，则将新的文本内容设置到容器元素中。
       if (c2 !== c1) {
         hostSetElementText(container, c2 as string)
       }
     } else {
+      // * 新旧节点的形状标志 `prevShapeFlag` 都是数组子节点
       if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
         // prev children was array
+        // * 新旧子节点都是数组子节点，则进行完全差异的有键值子节点的修补
         if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
           // two arrays, cannot assume anything, do full diff
           patchKeyedChildren(
@@ -1921,16 +1945,20 @@ function baseCreateRenderer(
           )
         } else {
           // no new children, just unmount old
+          // * 如果新子节点是数组子节点而旧子节点不是，则直接卸载旧的子节点。
           unmountChildren(c1 as VNode[], parentComponent, parentSuspense, true)
         }
       } else {
+        // * 如果旧节点的形状标志 `prevShapeFlag` 是文本子节点，而新节点的形状标志 `shapeFlag` 是数组子节点，则清空容器元素的文本内容，并挂载新的子节点。
         // prev children was text OR null
         // new children is array OR null
         if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
+          // * 清空容器元素的文本内容
           hostSetElementText(container, '')
         }
         // mount new if array
         if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+          // * 挂载新的子节点
           mountChildren(
             c2 as VNodeArrayChildren,
             container,
@@ -1946,6 +1974,19 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * * 用于更新没有 key 的子节点数组。在这种情况下，VNode 的顺序是根据它们在数组中的位置来确定的。
+   * * 即在没有key的情况下，是没有优化算法的，会进行全量计算，全量更新
+   * @param c1
+   * @param c2
+   * @param container
+   * @param anchor
+   * @param parentComponent
+   * @param parentSuspense
+   * @param namespace
+   * @param slotScopeIds
+   * @param optimized
+   */
   const patchUnkeyedChildren = (
     c1: VNode[],
     c2: VNodeArrayChildren,
@@ -1979,6 +2020,7 @@ function baseCreateRenderer(
         optimized,
       )
     }
+    // * 更新完公共部分之后，如果旧子节点数组的长度大于新子节点数组的长度，则表示需要删除一些旧子节点
     if (oldLength > newLength) {
       // remove old
       unmountChildren(
@@ -1991,6 +2033,8 @@ function baseCreateRenderer(
       )
     } else {
       // mount new
+      // * 如果新子节点数组的长度大于旧子节点数组的长度，则表示需要挂载这些新子节点
+      // * 注意此处的mountChildren的最后一个参数是commonLength
       mountChildren(
         c2,
         container,
@@ -2006,6 +2050,10 @@ function baseCreateRenderer(
   }
 
   // can be all-keyed or mixed
+  /**
+   * * 用于处理具有key的子节点数组的更新。
+   * * 它遵循了一系列步骤来确保对子节点的有效更新，包括从开始和结束位置同步子节点、处理公共序列以及处理未知序列。
+   */
   const patchKeyedChildren = (
     c1: VNode[],
     c2: VNodeArrayChildren,
@@ -2025,6 +2073,8 @@ function baseCreateRenderer(
     // 1. sync from start
     // (a b) c
     // (a b) d e
+    // * 从起始处开始比较公共部分
+    // * 比较到有不同子节点为止
     while (i <= e1 && i <= e2) {
       const n1 = c1[i]
       const n2 = (c2[i] = optimized
@@ -2043,6 +2093,7 @@ function baseCreateRenderer(
           optimized,
         )
       } else {
+        // * break会跳出while循环
         break
       }
       i++
@@ -2051,6 +2102,8 @@ function baseCreateRenderer(
     // 2. sync from end
     // a (b c)
     // d e (b c)
+    // * 从结尾处开始继续比较公共部分
+    // * 同样的比较到有不同子节点为止
     while (i <= e1 && i <= e2) {
       const n1 = c1[e1]
       const n2 = (c2[e2] = optimized
