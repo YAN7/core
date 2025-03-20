@@ -49,7 +49,7 @@ import {
 } from './script/defineEmits'
 import { DEFINE_EXPOSE, processDefineExpose } from './script/defineExpose'
 import { DEFINE_OPTIONS, processDefineOptions } from './script/defineOptions'
-import { processDefineSlots } from './script/defineSlots'
+import { DEFINE_SLOTS, processDefineSlots } from './script/defineSlots'
 import { DEFINE_MODEL, processDefineModel } from './script/defineModel'
 import { getImportedName, isCallOf, isLiteralNode } from './script/utils'
 import { analyzeScriptBindings } from './script/analyzeScriptBindings'
@@ -106,10 +106,11 @@ export interface SFCScriptCompileOptions {
    */
   hoistStatic?: boolean
   /**
-   * (**Experimental**) Enable reactive destructure for `defineProps`
-   * @default false
+   * Set to `false` to disable reactive destructure for `defineProps` (pre-3.5
+   * behavior), or set to `'error'` to throw hard error on props destructures.
+   * @default true
    */
-  propsDestructure?: boolean
+  propsDestructure?: boolean | 'error'
   /**
    * File system access methods to be used when resolving types
    * imported in SFC macros. Defaults to ts.sys in Node.js, can be overwritten
@@ -135,6 +136,16 @@ export interface ImportBinding {
   isUsedInTemplate: boolean
 }
 
+const MACROS = [
+  DEFINE_PROPS,
+  DEFINE_EMITS,
+  DEFINE_EXPOSE,
+  DEFINE_OPTIONS,
+  DEFINE_SLOTS,
+  DEFINE_MODEL,
+  WITH_DEFAULTS,
+]
+
 /**
  * Compile `<script setup>`
  * It requires the whole SFC descriptor because we need to handle and merge
@@ -158,8 +169,6 @@ export function compileScript(
   const scopeId = options.id ? options.id.replace(/^data-v-/, '') : ''
   const scriptLang = script && script.lang
   const scriptSetupLang = scriptSetup && scriptSetup.lang
-
-  let refBindings: string[] | undefined
 
   if (!scriptSetup) {
     if (!script) {
@@ -317,15 +326,18 @@ export function compileScript(
         const imported = getImportedName(specifier)
         const source = node.source.value
         const existing = ctx.userImports[local]
-        if (
-          source === 'vue' &&
-          (imported === DEFINE_PROPS ||
-            imported === DEFINE_EMITS ||
-            imported === DEFINE_EXPOSE)
-        ) {
-          warnOnce(
-            `\`${imported}\` is a compiler macro and no longer needs to be imported.`,
-          )
+        if (source === 'vue' && MACROS.includes(imported)) {
+          if (local === imported) {
+            warnOnce(
+              `\`${imported}\` is a compiler macro and no longer needs to be imported.`,
+            )
+          } else {
+            ctx.error(
+              `\`${imported}\` is a compiler macro and cannot be aliased to ` +
+                `a different name.`,
+              specifier,
+            )
+          }
           removeSpecifier(i)
         } else if (existing) {
           if (existing.source === source && existing.imported === imported) {
@@ -523,8 +535,14 @@ export function compileScript(
             )
           }
 
-          // defineProps / defineEmits
+          // defineProps
           const isDefineProps = processDefineProps(ctx, init, decl.id)
+          if (ctx.propsDestructureRestId) {
+            setupBindings[ctx.propsDestructureRestId] =
+              BindingTypes.SETUP_REACTIVE_CONST
+          }
+
+          // defineEmits
           const isDefineEmits =
             !isDefineProps && processDefineEmits(ctx, init, decl.id)
           !isDefineEmits &&
@@ -581,6 +599,7 @@ export function compileScript(
         setupBindings,
         vueImportAliases,
         hoistStatic,
+        !!ctx.propsDestructureDecl,
       )
     }
 
@@ -597,7 +616,7 @@ export function compileScript(
     ) {
       const scope: Statement[][] = [scriptSetupAst.body]
       walk(node, {
-        enter(child: Node, parent: Node | undefined) {
+        enter(child: Node, parent: Node | null) {
           if (isFunctionType(child)) {
             this.skip()
           }
@@ -718,12 +737,6 @@ export function compileScript(
   }
   for (const key in setupBindings) {
     ctx.bindingMetadata[key] = setupBindings[key]
-  }
-  // known ref bindings
-  if (refBindings) {
-    for (const key of refBindings) {
-      ctx.bindingMetadata[key] = BindingTypes.SETUP_REF
-    }
   }
 
   // 7. inject `useCssVars` calls
@@ -958,7 +971,7 @@ export function compileScript(
       (definedOptions ? `\n  ...${definedOptions},` : '')
     ctx.s.prependLeft(
       startOffset,
-      `\n${genDefaultAs} /*#__PURE__*/${ctx.helper(
+      `\n${genDefaultAs} /*@__PURE__*/${ctx.helper(
         `defineComponent`,
       )}({${def}${runtimeOptions}\n  ${
         hasAwait ? `async ` : ``
@@ -971,7 +984,7 @@ export function compileScript(
       // export default Object.assign(__default__, { ... })
       ctx.s.prependLeft(
         startOffset,
-        `\n${genDefaultAs} /*#__PURE__*/Object.assign(${
+        `\n${genDefaultAs} /*@__PURE__*/Object.assign(${
           defaultExport ? `${normalScriptDefaultVar}, ` : ''
         }${definedOptions ? `${definedOptions}, ` : ''}{${runtimeOptions}\n  ` +
           `${hasAwait ? `async ` : ``}setup(${args}) {\n${exposeCall}`,
@@ -1034,6 +1047,7 @@ function walkDeclaration(
   bindings: Record<string, BindingTypes>,
   userImportAliases: Record<string, string>,
   hoistStatic: boolean,
+  isPropsDestructureEnabled = false,
 ): boolean {
   let isAllLiteral = false
 
@@ -1048,13 +1062,16 @@ function walkDeclaration(
     // export const foo = ...
     for (const { id, init: _init } of node.declarations) {
       const init = _init && unwrapTSNode(_init)
-      const isDefineCall = !!(
+      const isConstMacroCall =
         isConst &&
         isCallOf(
           init,
-          c => c === DEFINE_PROPS || c === DEFINE_EMITS || c === WITH_DEFAULTS,
+          c =>
+            c === DEFINE_PROPS ||
+            c === DEFINE_EMITS ||
+            c === WITH_DEFAULTS ||
+            c === DEFINE_SLOTS,
         )
-      )
       if (id.type === 'Identifier') {
         let bindingType
         const userReactiveBinding = userImportAliases['reactive']
@@ -1071,7 +1088,7 @@ function walkDeclaration(
         } else if (
           // if a declaration is a const literal, we can mark it so that
           // the generated render fn code doesn't need to unref() it
-          isDefineCall ||
+          isConstMacroCall ||
           (isConst && canNeverBeRef(init!, userReactiveBinding))
         ) {
           bindingType = isCallOf(init, DEFINE_PROPS)
@@ -1099,13 +1116,13 @@ function walkDeclaration(
         }
         registerBinding(bindings, id, bindingType)
       } else {
-        if (isCallOf(init, DEFINE_PROPS)) {
+        if (isCallOf(init, DEFINE_PROPS) && isPropsDestructureEnabled) {
           continue
         }
         if (id.type === 'ObjectPattern') {
-          walkObjectPattern(id, bindings, isConst, isDefineCall)
+          walkObjectPattern(id, bindings, isConst, isConstMacroCall)
         } else if (id.type === 'ArrayPattern') {
-          walkArrayPattern(id, bindings, isConst, isDefineCall)
+          walkArrayPattern(id, bindings, isConst, isConstMacroCall)
         }
       }
     }
