@@ -46,12 +46,16 @@ function compileToFunction(
     }
   }
 
+  // `genCacheKey`函数来自`@vue/shared`包，
+  // 它会根据模板内容和编译选项生成一个唯一的字符串作为缓存键。
+  // 这样可以确保相同的模板+选项组合会得到相同的缓存键，而不同的组合会得到不同的缓存键。
   const key = genCacheKey(template, options)
   const cached = compileCache[key]
   if (cached) {
     return cached
   }
-
+  // 如果模板字符串以`#`开头，表示它是一个选择器字符串，
+  // 会尝试在当前文档中查找对应的DOM元素，并将其innerHTML内容作为模板内容。
   if (template[0] === '#') {
     const el = document.querySelector(template)
     if (__DEV__ && !el) {
@@ -64,6 +68,9 @@ function compileToFunction(
     template = el ? el.innerHTML : ``
   }
 
+  // `extend`函数来自`@vue/shared`包，
+  // 它会合并两个对象，并返回一个新的对象，
+  // 新对象会包含两个对象的所有属性。
   const opts = extend(
     {
       hoistStatic: true,
@@ -73,6 +80,9 @@ function compileToFunction(
     options,
   )
 
+  // 如果`opts.isCustomElement`为`false`，并且`customElements`存在，
+  // 则将`opts.isCustomElement`设置为一个新的函数，
+  // 这个函数会检查给定的标签是否在`customElements`中存在。
   if (!opts.isCustomElement && typeof customElements !== 'undefined') {
     opts.isCustomElement = tag => !!customElements.get(tag)
   }

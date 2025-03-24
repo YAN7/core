@@ -6,6 +6,8 @@
 
 import esbuild from 'esbuild'
 import fs from 'node:fs'
+// node:path 这种写法是 Node.js 中的一种特殊导入语法，称为"内置模块说明符"（built-in module specifier）。
+// 它允许你直接从 Node.js 标准库中导入模块，而不需要使用 require 或 import 语句。
 import { dirname, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
