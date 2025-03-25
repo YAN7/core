@@ -311,6 +311,8 @@ export const queuePostRenderEffect: (
 /**
  * * 创建渲染器
  */
+
+// * 创建渲染器
 export function createRenderer<
   HostNode = RendererNode,
   HostElement = RendererElement,
@@ -335,6 +337,7 @@ function baseCreateRenderer<
 >(options: RendererOptions<HostNode, HostElement>): Renderer<HostElement>
 
 // overload 2: with hydration
+// * 创建水合渲染器
 function baseCreateRenderer(
   options: RendererOptions<Node, Element>,
   createHydrationFns: typeof createHydrationFunctions,
@@ -345,6 +348,7 @@ function baseCreateRenderer(
 /**
  * * 创建渲染器的最底层函数
  */
+// * 创建渲染器的最底层函数
 function baseCreateRenderer(
   options: RendererOptions,
   createHydrationFns?: typeof createHydrationFunctions,
@@ -362,6 +366,7 @@ function baseCreateRenderer(
     setDevtoolsHook(target.__VUE_DEVTOOLS_GLOBAL_HOOK__, target)
   }
 
+  // * 获取渲染器选项
   const {
     insert: hostInsert,
     remove: hostRemove,
@@ -379,8 +384,36 @@ function baseCreateRenderer(
 
   // Note: functions inside this closure should use `const xxx = () => {}`
   // style in order to prevent being inlined by minifiers.
-  // * 用来更新vnode
+  // * Vue 3渲染系统的核心，负责对比和更新虚拟DOM节点
   // * n1为旧节点, n2为新节点
+  /**
+   * 这个patch函数的主要功能包括:
+   * 1. 参数校验和前置处理:
+   * 检查新旧节点是否完全相同
+   * 检查新旧节点类型是否相同,不同则卸载旧节点
+   * 处理优化相关的标记
+   * 2. 根据节点类型分发处理:
+   * 文本节点(Text)
+   * 注释节点(Comment)
+   * 静态节点(Static)
+   * 片段(Fragment)
+   * DOM元素(Element)
+   * 组件(Component)
+   * 传送门(Teleport)
+   * 异步组件(Suspense)
+   * 3. 后置处理:
+   * 处理ref引用的更新
+   * @param n1 旧节点
+   * @param n2 新节点
+   * @param container 容器
+   * @param anchor 锚点
+   * @param parentComponent 父组件
+   * @param parentSuspense 父Suspense
+   * @param namespace 命名空间
+   * @param slotScopeIds 插槽作用域ID
+   * @param optimized 是否优化
+   * @returns
+   */
   const patch: PatchFn = (
     n1,
     n2,
@@ -392,45 +425,47 @@ function baseCreateRenderer(
     slotScopeIds = null,
     optimized = __DEV__ && isHmrUpdating ? false : !!n2.dynamicChildren,
   ) => {
-    // * 如果 n1 和 n2 相等（引用相同），说明没有需要更新的内容，直接返回。
+    // * 如果新旧节点完全相同,则无需更新
     if (n1 === n2) {
       return
     }
 
-    // patching & not same type, unmount old tree
-    // * 如果 n1 存在但不是同一类型的节点，说明需要卸载旧的节点，然后将 n1 设为 null，表示没有旧节点了。
+    // * 如果新旧节点类型不同,则需要卸载旧节点
     if (n1 && !isSameVNodeType(n1, n2)) {
       anchor = getNextHostNode(n1)
       unmount(n1, parentComponent, parentSuspense, true)
       n1 = null
     }
 
-    // * 如果新节点的 patchFlag 是 PatchFlags.BAIL，表示需要进行完整的比较，不使用优化模式，将 optimized 设为 false，并清空动态子节点信息。
+    // * 如果新节点带有BAIL标记,则禁用优化
     if (n2.patchFlag === PatchFlags.BAIL) {
       optimized = false
       n2.dynamicChildren = null
     }
 
+    // * 获取新节点的类型,ref,形状标志
     const { type, ref, shapeFlag } = n2
+
+    // * 根据节点类型分发到不同的处理函数
     switch (type) {
-      // * 处理文本
       case Text:
+        // * 处理文本节点
         processText(n1, n2, container, anchor)
         break
-      // * 处理注释
       case Comment:
+        // * 处理注释节点
         processCommentNode(n1, n2, container, anchor)
         break
-      // * 处理静态节点
       case Static:
+        // * 处理静态节点
         if (n1 == null) {
           mountStaticNode(n2, container, anchor, namespace)
         } else if (__DEV__) {
           patchStaticNode(n1, n2, container, namespace)
         }
         break
-      // * 处理片段
       case Fragment:
+        // * 处理Fragment片段
         processFragment(
           n1,
           n2,
@@ -445,7 +480,7 @@ function baseCreateRenderer(
         break
       default:
         if (shapeFlag & ShapeFlags.ELEMENT) {
-          // * 处理普通元素
+          // * 处理普通DOM元素
           processElement(
             n1,
             n2,
@@ -471,7 +506,7 @@ function baseCreateRenderer(
             optimized,
           )
         } else if (shapeFlag & ShapeFlags.TELEPORT) {
-          // * 处理Teleport
+          // * 处理Teleport组件
           ;(type as typeof TeleportImpl).process(
             n1 as TeleportVNode,
             n2 as TeleportVNode,
@@ -485,7 +520,7 @@ function baseCreateRenderer(
             internals,
           )
         } else if (__FEATURE_SUSPENSE__ && shapeFlag & ShapeFlags.SUSPENSE) {
-          // * 处理suspense
+          // * 处理Suspense组件
           ;(type as typeof SuspenseImpl).process(
             n1,
             n2,
@@ -499,12 +534,13 @@ function baseCreateRenderer(
             internals,
           )
         } else if (__DEV__) {
+          // * 开发环境下,对无效的VNode类型发出警告
           warn('Invalid VNode type:', type, `(${typeof type})`)
         }
     }
 
-    // set ref
-    // * 如果节点有 ref 属性且存在父组件，则设置 ref
+    // * 设置ref引用
+    // * 如果节点有ref属性且存在父组件,则更新ref
     if (ref != null && parentComponent) {
       setRef(ref, n1 && n1.ref, parentSuspense, n2 || n1, !n2)
     }

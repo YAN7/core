@@ -19,7 +19,12 @@ import { type ComponentOptions, getComponentPublicInstance } from './component'
 import { knownTemplateRefs } from './helpers/useTemplateRef'
 
 /**
- * Function for handling a template ref
+ * 处理模板引用(template ref)的函数
+ * @param rawRef - 规范化后的 VNode ref 对象
+ * @param oldRawRef - 旧的 ref 对象(用于对比更新)
+ * @param parentSuspense - 父级 Suspense 组件
+ * @param vnode - 当前虚拟节点
+ * @param isUnmount - 是否是卸载操作
  */
 export function setRef(
   rawRef: VNodeNormalizedRef,
@@ -28,6 +33,7 @@ export function setRef(
   vnode: VNode,
   isUnmount = false,
 ): void {
+  // 处理数组形式的 ref
   if (isArray(rawRef)) {
     rawRef.forEach((r, i) =>
       setRef(
@@ -41,9 +47,10 @@ export function setRef(
     return
   }
 
+  // 处理异步组件的特殊情况
   if (isAsyncWrapper(vnode) && !isUnmount) {
-    // #4999 if an async component already resolved and cached by KeepAlive,
-    // we need to set the ref to inner component
+    // #4999 如果异步组件已经被 KeepAlive 缓存并解析完成
+    // 需要将 ref 设置到内部组件上
     if (
       vnode.shapeFlag & ShapeFlags.COMPONENT_KEPT_ALIVE &&
       (vnode.type as ComponentOptions).__asyncResolved &&
@@ -51,12 +58,12 @@ export function setRef(
     ) {
       setRef(rawRef, oldRawRef, parentSuspense, vnode.component!.subTree)
     }
-
-    // otherwise, nothing needs to be done because the template ref
-    // is forwarded to inner component
     return
   }
 
+  // 获取 ref 的值
+  // 对于有状态组件，获取其公共实例
+  // 对于其他情况，获取 DOM 元素
   const refValue =
     vnode.shapeFlag & ShapeFlags.STATEFUL_COMPONENT
       ? getComponentPublicInstance(vnode.component!)
@@ -64,6 +71,8 @@ export function setRef(
   const value = isUnmount ? null : refValue
 
   const { i: owner, r: ref } = rawRef
+
+  // 开发环境下检查 ref owner 上下文
   if (__DEV__ && !owner) {
     warn(
       `Missing ref owner context. ref cannot be used on hoisted vnodes. ` +
@@ -71,22 +80,25 @@ export function setRef(
     )
     return
   }
+
   const oldRef = oldRawRef && (oldRawRef as VNodeNormalizedRefAtom).r
   const refs = owner.refs === EMPTY_OBJ ? (owner.refs = {}) : owner.refs
   const setupState = owner.setupState
   const rawSetupState = toRaw(setupState)
+
+  // 检查是否可以在 setup 状态中设置 ref
   const canSetSetupRef =
     setupState === EMPTY_OBJ
       ? () => false
       : (key: string) => {
           if (__DEV__) {
+            // 开发环境下的警告检查
             if (hasOwn(rawSetupState, key) && !isRef(rawSetupState[key])) {
               warn(
                 `Template ref "${key}" used on a non-ref value. ` +
                   `It will not work in the production build.`,
               )
             }
-
             if (knownTemplateRefs.has(rawSetupState[key] as any)) {
               return false
             }
@@ -94,7 +106,7 @@ export function setRef(
           return hasOwn(rawSetupState, key)
         }
 
-  // dynamic ref changed. unset old ref
+  // 如果旧的 ref 存在且与新的 ref 不同，清除旧的 ref
   if (oldRef != null && oldRef !== ref) {
     if (isString(oldRef)) {
       refs[oldRef] = null
@@ -106,23 +118,28 @@ export function setRef(
     }
   }
 
+  // 处理函数形式的 ref
   if (isFunction(ref)) {
     callWithErrorHandling(ref, owner, ErrorCodes.FUNCTION_REF, [value, refs])
   } else {
     const _isString = isString(ref)
     const _isRef = isRef(ref)
 
+    // 处理字符串形式或 ref 对象形式的引用
     if (_isString || _isRef) {
       const doSet = () => {
         if (rawRef.f) {
+          // 处理函数式 ref
           const existing = _isString
             ? canSetSetupRef(ref)
               ? setupState[ref]
               : refs[ref]
             : ref.value
           if (isUnmount) {
+            // 卸载时移除引用
             isArray(existing) && remove(existing, refValue)
           } else {
+            // 设置或更新引用
             if (!isArray(existing)) {
               if (_isString) {
                 refs[ref] = [refValue]
@@ -138,21 +155,23 @@ export function setRef(
             }
           }
         } else if (_isString) {
+          // 直接设置字符串形式的 ref
           refs[ref] = value
           if (canSetSetupRef(ref)) {
             setupState[ref] = value
           }
         } else if (_isRef) {
+          // 设置 ref 对象的值
           ref.value = value
           if (rawRef.k) refs[rawRef.k] = value
         } else if (__DEV__) {
           warn('Invalid template ref type:', ref, `(${typeof ref})`)
         }
       }
+
       if (value) {
-        // #1789: for non-null values, set them after render
-        // null values means this is unmount and it should not overwrite another
-        // ref with the same key
+        // #1789: 对于非 null 值，在渲染后设置
+        // null 值表示这是一个卸载操作，不应覆盖具有相同键的其他 ref
         ;(doSet as SchedulerJob).id = -1
         queuePostRenderEffect(doSet, parentSuspense)
       } else {

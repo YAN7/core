@@ -71,7 +71,6 @@ let renderer: Renderer<Element | ShadowRoot> | HydrationRenderer
 
 let enabledHydration = false
 
-// * 确认渲染器
 function ensureRenderer() {
   return (
     renderer ||
@@ -96,6 +95,7 @@ export const hydrate = ((...args) => {
   ensureHydrationRenderer().hydrate(...args)
 }) as RootHydrateFunction
 
+// * 创建应用
 export const createApp = ((...args) => {
   // * 万物起源
   // 创建渲染器对象
