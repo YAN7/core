@@ -1,5 +1,12 @@
 const range: number = 2
 
+/**
+ * 生成错误代码的代码帧
+ * @param source 源代码
+ * @param start 开始位置
+ * @param end 结束位置
+ * @returns 错误代码的代码帧
+ */
 export function generateCodeFrame(
   source: string,
   start = 0,

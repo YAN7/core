@@ -88,14 +88,17 @@ function compileToFunction(
   }
 
   // code是生成dom的方法.toString形式
+  // 调用compile方法,生成dom的方法.toString形式
   const { code } = compile(template, opts)
 
+  // 定义一个错误处理函数,当编译模板时发生错误时,会调用这个函数
   function onError(err: CompilerError, asWarning = false) {
     const message = asWarning
       ? err.message
       : `Template compilation error: ${err.message}`
     const codeFrame =
       err.loc &&
+      // 生成错误代码的代码帧
       generateCodeFrame(
         template as string,
         err.loc.start.offset,
@@ -117,8 +120,9 @@ function compileToFunction(
   return (compileCache[key] = render)
 }
 
-// 注册installWithProxy方法
+// 注册compileToFunction方法
 registerRuntimeCompiler(compileToFunction)
 
+// 导出compileToFunction方法,并命名为compile
 export { compileToFunction as compile }
 export * from '@vue/runtime-dom'
