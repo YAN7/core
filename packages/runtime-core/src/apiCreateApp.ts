@@ -369,11 +369,12 @@ export function createAppAPI<HostElement>(
                 ` you need to unmount the previous app by calling \`app.unmount()\` first.`,
             )
           }
+          // 创建虚拟节点
           const vnode = app._ceVNode || createVNode(rootComponent, rootProps)
           // store app context on the root VNode.
           // this will be set on the root instance on initial mount.
           vnode.appContext = context
-
+          // 如果命名空间为true，则设置为svg
           if (namespace === true) {
             namespace = 'svg'
           } else if (namespace === false) {

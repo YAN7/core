@@ -307,12 +307,17 @@ export const queuePostRenderEffect: (
  *   ...nodeOps
  * })
  * ```
- */
-/**
- * * 创建渲染器
- */
+ * /
 
-// * 创建渲染器
+/**
+ * 为什么createRenderer直接返回baseCreateRenderer，看似多此一举？
+ * 1. 抽象层次的分离：createRenderer提供了一个干净简洁的公共API，而baseCreateRenderer包含了大量实现细节
+ * 2. 函数重载和类型系统支持：baseCreateRenderer有两个函数重载定义，通过createRenderer和createHydrationRenderer
+ *    两个不同的函数，可以让类型系统更好地工作，提供更精确的类型提示
+ * 3. 树摇（Tree-shaking）优化：如果只使用普通渲染而不使用SSR水合功能，构建工具可以移除水合相关的代码
+ * 4. 面向未来的扩展性：这种设计模式允许在不破坏公共API的情况下，未来可以在createRenderer中添加额外逻辑
+ * 5. 遵循开闭原则：符合"对扩展开放，对修改封闭"的设计原则，使框架可以在保持稳定API的同时继续演进
+ */
 export function createRenderer<
   HostNode = RendererNode,
   HostElement = RendererElement,
@@ -350,7 +355,28 @@ function baseCreateRenderer(
  */
 // * 创建渲染器的最底层函数
 function baseCreateRenderer(
+  /**
+   * 渲染器选项对象，包含平台特定的DOM操作方法
+   *
+   * @description 这个参数是渲染器与底层平台交互的桥梁，包含以下核心方法：
+   * - insert: 将节点插入到父节点中指定位置
+   * - remove: 从DOM中移除节点
+   * - patchProp: 更新元素的属性/事件/样式等
+   * - createElement: 创建DOM元素
+   * - createText: 创建文本节点
+   * - createComment: 创建注释节点
+   * - setText: 设置文本节点的内容
+   * - setElementText: 设置元素的文本内容
+   * - parentNode: 获取节点的父节点
+   * - nextSibling: 获取节点的下一个兄弟节点
+   * - setScopeId: 设置作用域ID（用于CSS作用域）
+   * - insertStaticContent: 插入静态内容（优化性能）
+   *
+   * 这种设计使Vue的渲染系统与平台无关，可以适配浏览器DOM、服务器端渲染、
+   * 原生移动应用等不同环境，只需提供相应的平台特定实现。
+   */
   options: RendererOptions,
+  // 水合函数
   createHydrationFns?: typeof createHydrationFunctions,
 ): any {
   // compile-time feature flags check
@@ -359,14 +385,17 @@ function baseCreateRenderer(
   }
 
   // * 判断是浏览器还是node环境
+  // * 获取全局对象
   const target = getGlobalThis()
   // * 可以通过window.__VUE__来判断是否用的vue3
   target.__VUE__ = true
   if (__DEV__ || __FEATURE_PROD_DEVTOOLS__) {
+    // * 设置devtools钩子
     setDevtoolsHook(target.__VUE_DEVTOOLS_GLOBAL_HOOK__, target)
   }
 
   // * 获取渲染器选项
+  // * 这些方法是一系列操作dom节点的方法
   const {
     insert: hostInsert,
     remove: hostRemove,

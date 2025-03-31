@@ -421,6 +421,7 @@ export function transformVNodeArgs(
   vnodeArgsTransformer = transformer
 }
 
+// 创建虚拟节点
 const createVNodeWithArgsTransform = (
   ...args: Parameters<typeof _createVNode>
 ): VNode => {
@@ -543,6 +544,16 @@ export const createVNode = (
   __DEV__ ? createVNodeWithArgsTransform : _createVNode
 ) as typeof _createVNode
 
+/**
+ * 创建虚拟节点
+ * @param type 虚拟节点类型
+ * @param props
+ * @param children
+ * @param patchFlag
+ * @param dynamicProps
+ * @param isBlockNode
+ * @returns
+ */
 function _createVNode(
   type: VNodeTypes | ClassComponent | typeof NULL_DYNAMIC_COMPONENT,
   props: (Data & VNodeProps) | null = null,
@@ -649,6 +660,13 @@ export function guardReactiveProps(
   return isProxy(props) || isInternalObject(props) ? extend({}, props) : props
 }
 
+/**
+ * 克隆虚拟节点
+ * @param vnode 虚拟节点
+ * @param extraProps 额外属性
+ * @param mergeRef 合并ref
+ * @param cloneTransition 克隆过渡
+ */
 export function cloneVNode<T, U>(
   vnode: VNode<T, U>,
   extraProps?: (Data & VNodeProps) | null,

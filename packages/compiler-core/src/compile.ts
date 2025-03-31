@@ -77,7 +77,6 @@ export function baseCompile(
     }
   }
   /* v8 ignore stop */
-
   const prefixIdentifiers =
     !__BROWSER__ && (options.prefixIdentifiers === true || isModuleMode)
   if (!prefixIdentifiers && options.cacheHandlers) {
@@ -94,6 +93,8 @@ export function baseCompile(
   const [nodeTransforms, directiveTransforms] =
     getBaseTransformPreset(prefixIdentifiers)
 
+  // 如果当前不是浏览器环境，并且 options.isTS 为 true，则将 typescript 添加到 expressionPlugins 中
+  // 这是因为 typescript 的表达式插件在浏览器环境中不起作用，所以需要单独处理
   if (!__BROWSER__ && options.isTS) {
     const { expressionPlugins } = options
     if (!expressionPlugins || !expressionPlugins.includes('typescript')) {
