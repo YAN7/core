@@ -250,6 +250,13 @@ export type CreateAppFunction<HostElement> = (
 
 let uid = 0
 
+/**
+ * 创建应用实例的API
+ *
+ * @param render - 渲染函数
+ * @param hydrate - 水合函数
+ * @returns 创建应用实例的函数
+ */
 export function createAppAPI<HostElement>(
   render: RootRenderFunction<HostElement>,
   hydrate?: RootHydrateFunction,
